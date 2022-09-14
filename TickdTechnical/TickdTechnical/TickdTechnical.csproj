@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="client-app\components\" />
     <Folder Include="Controllers\" />
   </ItemGroup>
 
