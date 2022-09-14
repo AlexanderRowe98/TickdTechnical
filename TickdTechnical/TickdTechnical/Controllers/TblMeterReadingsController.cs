@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +11,7 @@ using TickdTechnical.Models;
 
 namespace TickdTechnical.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/meter-reading-uploads")]
     [ApiController]
     public class TblMeterReadingsController : ControllerBase
     {
@@ -77,26 +79,82 @@ namespace TickdTechnical.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<TblMeterReadings>> PostTblMeterReadings(TblMeterReadings tblMeterReadings)
+        public async Task<IActionResult> PostTblMeterReading([FromForm] IFormFile file)
         {
-            _context.TblMeterReadings.Add(tblMeterReadings);
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (TblMeterReadingsExists(tblMeterReadings.EntryId))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                int successfullEntries = 0;
+                int failedEntries = 0;
+                int alreadyExists = 0;
 
-            return CreatedAtAction("GetTblMeterReadings", new { id = tblMeterReadings.EntryId }, tblMeterReadings);
+                // Initialise StreamReader to read through the uploaded CSV file
+                using (StreamReader reader = new StreamReader(file.OpenReadStream()))
+                {
+                    // Ignore first line (headings)
+                    reader.ReadLine();
+                    while (!reader.EndOfStream)
+                    {
+                        var line = reader.ReadLine();
+                        var values = line.Split(',');
+
+                        // Regex to make sure only numbers are present in the meter reading field / to format of NNNNN
+                        // Ensure account id field in csv has data
+                        if (Regex.IsMatch(values[2], @"^\d{5}$") && !string.IsNullOrEmpty(values[0]))
+                        {
+                            if (int.TryParse(values[0], out int accountId))
+                            {
+                                // Check to see if there is a valid account associated to the meter reading
+                                TblAccounts account = await _context.TblAccounts.FirstOrDefaultAsync(x => x.AccountId == accountId);
+
+                                if (account != null)
+                                {
+
+                                    // Check to see if there is an existing meter reading matching the data
+                                    TblMeterReadings existingReading = await _context.TblMeterReadings.FirstOrDefaultAsync(x => (x.AccountId == accountId)
+                                        && (x.MeterReadingDatetime == DateTime.Parse(values[1]))
+                                        && (x.MeterReadValue == values[2]));
+
+                                    // Proceed if no existing reading
+                                    if (existingReading == null)
+                                    {
+                                        // Initialise TblMeterReading class and assign values from stream reader
+                                        TblMeterReadings meterReading = new TblMeterReadings
+                                        {
+                                            AccountId = accountId,
+                                            MeterReadingDatetime = DateTime.Parse(values[1]),
+                                            MeterReadValue = values[2]
+                                        };
+
+                                        // Add meter reading to entity state ready to be inserted into the DB
+                                        _context.TblMeterReadings.Add(meterReading);
+                                        successfullEntries += 1;
+                                    }
+                                    else
+                                    {
+                                        // Meter reading entry already exists
+                                        alreadyExists += 1;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Entry of meter reading failed due to being invalid
+                            failedEntries += 1;
+                        }
+                    }
+                }
+
+                // Insert all new meter readings from entity state
+                await _context.SaveChangesAsync();
+
+                // Return Success and provide number of successful, failed and duplicate entries from the file that was uploaded
+                return Ok(new { successfullEntries, failedEntries, alreadyExists });
+            }
+            catch (Exception)
+            {
+                throw new Exception();
+            }
         }
 
         // DELETE: api/TblMeterReadings/5
