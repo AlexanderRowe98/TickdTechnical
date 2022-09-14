@@ -1,15 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using TickdTechnical.Models;
 
 namespace TickdTechnical
 {
@@ -26,6 +21,17 @@ namespace TickdTechnical
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddHttpClient();
+            services.AddDbContext<TickdContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("TickdConn"))
+            );
+            services.AddCors(options => options.AddDefaultPolicy(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+
+            // In production, the React files will be served from this directory
+            services.AddSpaStaticFiles(configuration =>
+            {
+                configuration.RootPath = "client-app/build";
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -42,9 +48,19 @@ namespace TickdTechnical
 
             app.UseAuthorization();
 
+            app.UseCors();
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+
+            app.UseSpa(spa =>
+            {
+                if (env.IsDevelopment())
+                {
+                    spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
+                }
             });
         }
     }
