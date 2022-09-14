@@ -117,17 +117,40 @@ namespace TickdTechnical.Controllers
                                     // Proceed if no existing reading
                                     if (existingReading == null)
                                     {
-                                        // Initialise TblMeterReading class and assign values from stream reader
-                                        TblMeterReadings meterReading = new TblMeterReadings
-                                        {
-                                            AccountId = accountId,
-                                            MeterReadingDatetime = DateTime.Parse(values[1]),
-                                            MeterReadValue = values[2]
-                                        };
+                                        // Check to see if there is previous meter reading for this account
+                                        List<TblMeterReadings> previousReadings = await _context.TblMeterReadings.Where(x => x.AccountId == accountId).ToListAsync();
+                                        bool isOlder = false;
 
-                                        // Add meter reading to entity state ready to be inserted into the DB
-                                        _context.TblMeterReadings.Add(meterReading);
-                                        successfullEntries += 1;
+                                        // Loop through each of the previous readings relating to this account Id 
+                                        // Check if reading Datetime is more recent than the entry in the .csv file
+                                        foreach (var reading in previousReadings)
+                                        {
+                                            if (isOlder == false && reading.MeterReadingDatetime > DateTime.Parse(values[1]))
+                                            {
+                                                isOlder = true;
+                                            }
+                                        }
+
+                                        // If new record is not older than previous records
+                                        if (!isOlder)
+                                        {
+                                            // Initialise TblMeterReading class and assign values from stream reader
+                                            TblMeterReadings meterReading = new TblMeterReadings
+                                            {
+                                                AccountId = accountId,
+                                                MeterReadingDatetime = DateTime.Parse(values[1]),
+                                                MeterReadValue = values[2]
+                                            };
+
+                                            // Add meter reading to entity state ready to be inserted into the DB
+                                            _context.TblMeterReadings.Add(meterReading);
+                                            successfullEntries += 1;
+                                        }
+                                        else
+                                        {
+                                            // Entry of meter reading failed due to being invalid
+                                            failedEntries += 1;
+                                        }
                                     }
                                     else
                                     {
