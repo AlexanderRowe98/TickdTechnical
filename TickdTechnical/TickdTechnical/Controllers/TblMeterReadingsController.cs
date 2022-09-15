@@ -39,8 +39,6 @@ namespace TickdTechnical.Controllers
             int failedEntries = 0;
             int duplicateEntries = 0;
 
-            var entity = _context.TblMeterReadings;
-
             // Initialise StreamReader to read through the uploaded CSV file
             using (StreamReader reader = new StreamReader(file.OpenReadStream()))
             {
@@ -92,12 +90,12 @@ namespace TickdTechnical.Controllers
                                         };
 
                                         // Add meter reading to entity state ready to be inserted into the DB
-                                        entity.Add(meterReading);
+                                        _context.TblMeterReadings.Add(meterReading);
                                         successfulEntries += 1;
                                     }
                                     else
                                     {
-                                        // Entry of meter reading failed due to being invalid
+                                        // Entry of meter reading failed due to being older than a previous entry for this account
                                         failedEntries += 1;
                                     }
                                 }
@@ -126,6 +124,11 @@ namespace TickdTechnical.Controllers
             {
                 // Insert all new meter readings from entity state to DB
                 await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Catch exception if insertion of values into DB fails
+                throw;
             }
             catch (Exception)
             {
