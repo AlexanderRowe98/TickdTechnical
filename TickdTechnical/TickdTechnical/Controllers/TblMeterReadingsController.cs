@@ -28,6 +28,12 @@ namespace TickdTechnical.Controllers
         [HttpPost]
         public async Task<IActionResult> PostTblMeterReading([FromForm] IFormFile file)
         {
+            if (file == null)
+                return BadRequest("No file was provided.");
+
+            if (file.ContentType != "text/csv")
+                return BadRequest("File was not in the correct format: .csv");
+
             // Variables to track the status of each entry
             int successfulEntries = 0;
             int failedEntries = 0;
