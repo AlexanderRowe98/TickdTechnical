@@ -14,8 +14,13 @@ export default function CsvForm(props) {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        submitFile();
-        event.target.files = null;
+        if (selectedFile) {            
+            submitFile();
+            event.target.files = null;
+        }
+        else {
+            alert('Please add a file before submitting');
+        }
     }
 
     const submitFile = () => {
@@ -65,8 +70,7 @@ export default function CsvForm(props) {
                     className="file-upload"
                     ref={fileInputElement}
                     type="file"
-                    onChange={(e) => handleChange(e)}
-                    required
+                    onChange={(e) => handleChange(e)}                    
                 />
                 <input type="submit" />
             </form>
