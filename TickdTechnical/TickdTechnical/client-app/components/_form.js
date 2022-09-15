@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import Loader from "./_loader";
 import Modal from "./_modal";
+import ApiCall from "../data/_fetch";
 
 export default function CsvForm(props) {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -30,7 +31,6 @@ export default function CsvForm(props) {
     }
 
     const submitFile = () => {
-        console.log('submit func');
         if (selectedFile.type != "text/csv") {
             props.response(null);
             setSelectedFile(null);
@@ -38,26 +38,10 @@ export default function CsvForm(props) {
             setFileName("Choose a file");
         }
         else {
-            console.log('its csv');
             setLoader(<Loader />);
             var data = new FormData()
             data.append('file', selectedFile)
-            fetch('/api/meter-reading-uploads', {
-                method: 'POST',
-                body: data
-            }).then((response) => { 
-                if (!response.ok) {
-                    return response.text().then(text => {handleError(text)})
-                }
-                else {
-                    return response.json()
-                }
-            }).then((data) => {
-                handleData(data)
-            }).catch(
-                error => console.error(error)
-            );
-
+            ApiCall(data, handleData, handleError);
             setSelectedFile(null);
         }
     }
@@ -69,18 +53,13 @@ export default function CsvForm(props) {
     }
 
     const handleError = (error) => {
+        setLoader(null);
         setErrorMsg(error);
     }
 
     return (
         <>
-            {loader}
-            {validationError &&
-                <Modal title="Error!" copy={validationError} btnText="Close" closeError={closeError}/>
-            } 
-            {errorMsg &&
-                <Modal title="Error!" copy={errorMsg} btnText="Close" closeError={closeError}/>
-            }
+            {loader}            
             <form onSubmit={handleSubmit}>
                 <h2>Upload Meter Readings</h2>
                 <label htmlFor="file-upload" className="file-upload">
@@ -94,6 +73,12 @@ export default function CsvForm(props) {
                 />                               
                 <input type="submit" />
             </form>
+            {validationError &&
+                <Modal title="Error!" copy={validationError} btnText="Close" closeError={closeError}/>
+            } 
+            {errorMsg &&
+                <Modal title="Error!" copy={errorMsg} btnText="Close" closeError={closeError}/>
+            }
         </>
     )
 }

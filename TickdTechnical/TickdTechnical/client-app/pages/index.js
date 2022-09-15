@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Layout from '../components/_layout';
 import CsvForm from '../components/_form'
 import Results from '../components/_results';
 
@@ -21,12 +22,12 @@ export default function Home() {
     }
 
     return (
-        <div className='container'>
+        <Layout>
             <h1>Tickd Technical</h1>
             <CsvForm response={displayResponse} />
             {isResults &&
                 <Results success={successfulEntries} failed={failedEntries} duplicate={duplicateEntries} />
             }
-        </div>
+        </Layout>
     )
 }

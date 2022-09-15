@@ -128,11 +128,11 @@ namespace TickdTechnical.Controllers
             catch (DbUpdateException)
             {
                 // Catch exception if insertion of values into DB fails
-                throw;
+                return StatusCode(500, "An error occurred when inserting the entries into the database. Please try again.");
             }
             catch (Exception)
             {
-                throw;
+                return StatusCode(500, "Something went wrong... Please try again.");
             }
 
             // Return Success and provide number of successful, failed and duplicate entries from the file that was uploaded
