@@ -57,7 +57,7 @@ namespace TickdTechnical.Models
 
                 entity.Property(e => e.EntryId)
                     .HasColumnName("entry_id")
-                    .ValueGeneratedNever();
+                    .ValueGeneratedOnAdd();
 
                 entity.Property(e => e.AccountId).HasColumnName("account_id");
 

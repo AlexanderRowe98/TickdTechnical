@@ -22,183 +22,134 @@ namespace TickdTechnical.Controllers
             _context = context;
         }
 
-        // GET: api/TblMeterReadings
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<TblMeterReadings>>> GetTblMeterReadings()
-        {
-            return await _context.TblMeterReadings.ToListAsync();
-        }
-
-        // GET: api/TblMeterReadings/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TblMeterReadings>> GetTblMeterReadings(int id)
-        {
-            var tblMeterReadings = await _context.TblMeterReadings.FindAsync(id);
-
-            if (tblMeterReadings == null)
-            {
-                return NotFound();
-            }
-
-            return tblMeterReadings;
-        }
-
-        // PUT: api/TblMeterReadings/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTblMeterReadings(int id, TblMeterReadings tblMeterReadings)
-        {
-            if (id != tblMeterReadings.EntryId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(tblMeterReadings).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TblMeterReadingsExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/TblMeterReadings
+        // POST: api/meter-reading-uploads
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
         public async Task<IActionResult> PostTblMeterReading([FromForm] IFormFile file)
         {
-            try
+            // Variables to track the status of each entry
+            int successfulEntries = 0;
+            int failedEntries = 0;
+            int duplicateEntries = 0;
+
+            var entity = _context.TblMeterReadings;
+
+            // Initialise StreamReader to read through the uploaded CSV file
+            using (StreamReader reader = new StreamReader(file.OpenReadStream()))
             {
-                int successfullEntries = 0;
-                int failedEntries = 0;
-                int alreadyExists = 0;
-
-                // Initialise StreamReader to read through the uploaded CSV file
-                using (StreamReader reader = new StreamReader(file.OpenReadStream()))
+                // Ignore first line (headings)
+                reader.ReadLine();
+                while (!reader.EndOfStream)
                 {
-                    // Ignore first line (headings)
-                    reader.ReadLine();
-                    while (!reader.EndOfStream)
+                    var line = reader.ReadLine();
+                    var values = line.Split(',');
+
+                    //Check to see if the reading values are valid
+                    if (TblMeterReadingsIsValid(values))
                     {
-                        var line = reader.ReadLine();
-                        var values = line.Split(',');
-
-                        // Regex to make sure only numbers are present in the meter reading field / to format of NNNNN
-                        // Ensure account id field in csv has data
-                        if (Regex.IsMatch(values[2], @"^\d{5}$") && !string.IsNullOrEmpty(values[0]))
+                        if (int.TryParse(values[0], out int accountId))
                         {
-                            if (int.TryParse(values[0], out int accountId))
+                            // Check to see if reading values account ID is a valid account in tbl_accounts
+                            if (AccountExists(accountId))
                             {
-                                // Check to see if there is a valid account associated to the meter reading
-                                TblAccounts account = await _context.TblAccounts.FirstOrDefaultAsync(x => x.AccountId == accountId);
-
-                                if (account != null)
+                                // Check to see if this particular reading is already in the database / is a duplicate
+                                if (!IsDuplicateReading(accountId, DateTime.Parse(values[1]), values[2]))
                                 {
+                                    // Check to see if there is previous meter reading for this account
+                                    List<TblMeterReadings> previousReadings = await _context.TblMeterReadings.Where(x => x.AccountId == accountId).ToListAsync();
+                                    bool isOlder = false;
 
-                                    // Check to see if there is an existing meter reading matching the data
-                                    TblMeterReadings existingReading = await _context.TblMeterReadings.FirstOrDefaultAsync(x => (x.AccountId == accountId)
-                                        && (x.MeterReadingDatetime == DateTime.Parse(values[1]))
-                                        && (x.MeterReadValue == values[2]));
-
-                                    // Proceed if no existing reading
-                                    if (existingReading == null)
+                                    // If there are previous readings relating to this account Id, loop through each of them 
+                                    // Check if previous reading Datetime is more recent than the entry in the .csv file
+                                    if (previousReadings.Count > 0)
                                     {
-                                        // Check to see if there is previous meter reading for this account
-                                        List<TblMeterReadings> previousReadings = await _context.TblMeterReadings.Where(x => x.AccountId == accountId).ToListAsync();
-                                        bool isOlder = false;
-
-                                        // Loop through each of the previous readings relating to this account Id 
-                                        // Check if reading Datetime is more recent than the entry in the .csv file
                                         foreach (var reading in previousReadings)
                                         {
                                             if (isOlder == false && reading.MeterReadingDatetime > DateTime.Parse(values[1]))
                                             {
                                                 isOlder = true;
+                                                break;
                                             }
                                         }
+                                    }                                    
 
-                                        // If new record is not older than previous records
-                                        if (!isOlder)
+                                    // If new record is not older than previous records
+                                    if (!isOlder)
+                                    {
+                                        // Initialise TblMeterReading class and assign values from stream reader
+                                        TblMeterReadings meterReading = new TblMeterReadings
                                         {
-                                            // Initialise TblMeterReading class and assign values from stream reader
-                                            TblMeterReadings meterReading = new TblMeterReadings
-                                            {
-                                                AccountId = accountId,
-                                                MeterReadingDatetime = DateTime.Parse(values[1]),
-                                                MeterReadValue = values[2]
-                                            };
+                                            AccountId = accountId,
+                                            MeterReadingDatetime = DateTime.Parse(values[1]),
+                                            MeterReadValue = values[2]
+                                        };
 
-                                            // Add meter reading to entity state ready to be inserted into the DB
-                                            _context.TblMeterReadings.Add(meterReading);
-                                            successfullEntries += 1;
-                                        }
-                                        else
-                                        {
-                                            // Entry of meter reading failed due to being invalid
-                                            failedEntries += 1;
-                                        }
+                                        // Add meter reading to entity state ready to be inserted into the DB
+                                        entity.Add(meterReading);
+                                        successfulEntries += 1;
                                     }
                                     else
                                     {
-                                        // Meter reading entry already exists
-                                        alreadyExists += 1;
+                                        // Entry of meter reading failed due to being invalid
+                                        failedEntries += 1;
                                     }
                                 }
+                                else
+                                {
+                                    // Entry of meter reading not submitted due to being a duplicate
+                                    duplicateEntries += 1;
+                                }
                             }
-                        }
-                        else
-                        {
-                            // Entry of meter reading failed due to being invalid
-                            failedEntries += 1;
-                        }
+                            else
+                            {
+                                // Entry of meter reading failed due to no valid account
+                                failedEntries += 1;
+                            }
+                        }                        
+                    }
+                    else
+                    {
+                        // Entry of meter reading failed due to being invalid
+                        failedEntries += 1;
                     }
                 }
+            }
 
-                // Insert all new meter readings from entity state
+            try
+            {
+                // Insert all new meter readings from entity state to DB
                 await _context.SaveChangesAsync();
-
-                // Return Success and provide number of successful, failed and duplicate entries from the file that was uploaded
-                return Ok(new { successfullEntries, failedEntries, alreadyExists });
             }
             catch (Exception)
             {
-                throw new Exception();
+                throw;
             }
+
+            // Return Success and provide number of successful, failed and duplicate entries from the file that was uploaded
+            return Ok(new { successfulEntries, failedEntries, duplicateEntries });
         }
 
-        // DELETE: api/TblMeterReadings/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<TblMeterReadings>> DeleteTblMeterReadings(int id)
+        private bool TblMeterReadingsIsValid(string[] values)
         {
-            var tblMeterReadings = await _context.TblMeterReadings.FindAsync(id);
-            if (tblMeterReadings == null)
+            if (Regex.IsMatch(values[2], @"^\d{5}$") && !string.IsNullOrEmpty(values[0]))
             {
-                return NotFound();
+                return true;
             }
-
-            _context.TblMeterReadings.Remove(tblMeterReadings);
-            await _context.SaveChangesAsync();
-
-            return tblMeterReadings;
+            else
+            {
+                return false;
+            }
         }
 
-        private bool TblMeterReadingsExists(int id)
+        private bool AccountExists(int id)
         {
-            return _context.TblMeterReadings.Any(e => e.EntryId == id);
+            return _context.TblAccounts.Any(e => e.AccountId == id);
+        }
+
+        private bool IsDuplicateReading (int accountId, DateTime readingDate, string readingValue)
+        {
+            return _context.TblMeterReadings.Any(e => (e.AccountId == accountId) && (e.MeterReadingDatetime == readingDate) && (e.MeterReadValue == readingValue));
         }
     }
 }
