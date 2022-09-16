@@ -86,7 +86,7 @@ namespace TickdTechnical.Controllers
                                         {
                                             AccountId = accountId,
                                             MeterReadingDatetime = DateTime.Parse(values[1]),
-                                            MeterReadValue = values[2]
+                                            MeterReadValue = values[2].PadLeft(5, '0')
                                         };
 
                                         // Add meter reading to entity state ready to be inserted into the DB
@@ -122,8 +122,11 @@ namespace TickdTechnical.Controllers
 
             try
             {
-                // Insert all new meter readings from entity state to DB
-                await _context.SaveChangesAsync();
+                if (_context.ChangeTracker.HasChanges())
+                {
+                    // Insert all new meter readings from entity state to DB
+                    await _context.SaveChangesAsync();
+                }                
             }
             catch (DbUpdateException)
             {
@@ -141,7 +144,7 @@ namespace TickdTechnical.Controllers
 
         private bool TblMeterReadingsIsValid(string[] values)
         {
-            if (Regex.IsMatch(values[2], @"^\d{5}$") && !string.IsNullOrEmpty(values[0]))
+            if (Regex.IsMatch(values[2], @"^\d{1,5}$") && !string.IsNullOrEmpty(values[0]))
             {
                 return true;
             }
