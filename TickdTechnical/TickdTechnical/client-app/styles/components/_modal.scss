@@ -1,0 +1,40 @@
+.modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+
+    &__content {
+        background-color: $primary-color;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        color: $neutral-white;
+        font-weight: 600;
+        font-size: 1.25rem;
+        text-align: center;
+    }
+
+    &__title {
+        margin: 0;
+        padding: 0 0 1rem;
+        border-bottom: 1px solid $secondary-color;
+    }
+
+    &__button {
+        background-color: $secondary-color;
+        border-radius: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        color: $primary-color;
+
+        &:hover {
+            cursor: pointer;
+            filter: brightness(0.85);
+        }
+    }
+}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Layout from '../components/_layout';
 import CsvForm from '../components/_form'
 import Results from '../components/_results';
 
@@ -6,13 +7,11 @@ export default function Home() {
     const [isResults, setIsResults] = useState(false);
     const [successfulEntries, setSuccessfulEntries] = useState(null);
     const [failedEntries, setfailedEntries] = useState(null);
-    const [duplicateEntries, setduplicateEntries] = useState(null);
 
     const displayResponse = (data) => {
         if (data) {
             setSuccessfulEntries(data.successfulEntries);
             setfailedEntries(data.failedEntries);
-            setduplicateEntries(data.duplicateEntries);
             setIsResults(true);
         }
         else {
@@ -21,12 +20,12 @@ export default function Home() {
     }
 
     return (
-        <div className='container'>
+        <Layout>
             <h1>Tickd Technical</h1>
             <CsvForm response={displayResponse} />
             {isResults &&
-                <Results success={successfulEntries} failed={failedEntries} duplicate={duplicateEntries} />
+                <Results success={successfulEntries} failed={failedEntries}/>
             }
-        </div>
+        </Layout>
     )
 }

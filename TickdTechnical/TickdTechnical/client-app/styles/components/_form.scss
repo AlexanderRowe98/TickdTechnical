@@ -5,15 +5,14 @@ form {
     background-color: #2e435b;
     padding: 1.5rem;
     border-radius: 0.5rem;
-    
+
     input[type=file] {
         display: none;
     }
-    
+
     .file-upload {
-        border: 1px solid #ccc;
         background-color: rgb(233, 233, 233);
-        color: #2e435b;
+        color: $primary-color;
         display: inline-block;
         padding: 0.5rem 1rem;
         border-radius: 0.25rem;
@@ -21,10 +20,17 @@ form {
         margin-bottom: 1rem;
     }
 
+    .form__error {
+        margin: 0 0 1rem 0;
+        color: $neutral-white;
+        font-weight: 600;
+        font-size: 1.15rem;
+    }
+
     input[type=submit] {
-        background-color: #82edad;
+        background-color: $secondary-color;
         border: none;
-        color: #2e435b;
+        color: $primary-color;
         padding: 0.5rem;
         border-radius: 0.25rem;
         font-weight: 600;
