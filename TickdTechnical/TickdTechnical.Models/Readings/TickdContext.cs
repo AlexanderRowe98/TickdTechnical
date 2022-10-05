@@ -1,12 +1,6 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore;
 
-// Code scaffolded by EF Core assumes nullable reference types (NRTs) are not used or disabled.
-// If you have enabled NRTs for your project, then un-comment the following line:
-// #nullable disable
-
-namespace TickdTechnical.Models
+namespace TickdTechnical.Models.Readings
 {
     public partial class TickdContext : DbContext
     {
@@ -24,6 +18,11 @@ namespace TickdTechnical.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+//            if (!optionsBuilder.IsConfigured)
+//            {
+//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
+//                optionsBuilder.UseSqlServer("Server=.;Database=Tickd;Trusted_Connection=True;");
+//            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -55,9 +54,7 @@ namespace TickdTechnical.Models
 
                 entity.ToTable("tbl_meter_readings");
 
-                entity.Property(e => e.EntryId)
-                    .HasColumnName("entry_id")
-                    .ValueGeneratedOnAdd();
+                entity.Property(e => e.EntryId).HasColumnName("entry_id");
 
                 entity.Property(e => e.AccountId).HasColumnName("account_id");
 

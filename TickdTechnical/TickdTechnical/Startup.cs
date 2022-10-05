@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using TickdTechnical.Models;
+using TickdTechnical.Models.Readings;
+using TickdTechnical.Services;
+using TickdTechnical.Service.Interfaces;
 
 namespace TickdTechnical
 {
@@ -21,10 +23,13 @@ namespace TickdTechnical
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            services.AddHttpClient();
+            services.AddHttpClient();            
             services.AddDbContext<TickdContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("TickdConn"))
             );
+            services.AddTransient<IHandleReadingsService, HandleReadingsService>();
+            services.AddTransient<IValidationService, ValidationService>();
+            services.AddTransient<ISubmitReadingService, SubmitReadingService>();
             services.AddCors(options => options.AddDefaultPolicy(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
             // In production, the React files will be served from this directory

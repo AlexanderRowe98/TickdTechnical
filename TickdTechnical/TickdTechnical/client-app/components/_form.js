@@ -9,6 +9,7 @@ export default function CsvForm(props) {
     const [loader, setLoader] = useState(null);
     const [errorMsg, setErrorMsg] = useState("");
     const [validationError, setValidationError] = useState("");
+    const fileInputElement = useRef(null);
 
     const closeError = () => {
         setValidationError("");
@@ -36,6 +37,7 @@ export default function CsvForm(props) {
             setSelectedFile(null);
             setValidationError('Please ensure that the file you upload is in the format `.csv');
             setFileName("Choose a file");
+            fileInputElement.current.value = null;
         }
         else {
             setLoader(<Loader />);
@@ -43,6 +45,7 @@ export default function CsvForm(props) {
             data.append('file', selectedFile)
             ApiCall(data, handleData, handleError);
             setSelectedFile(null);
+            fileInputElement.current.value = null;
         }
     }
 
@@ -68,6 +71,7 @@ export default function CsvForm(props) {
                 <input
                     id="file-upload"
                     className="file-upload"
+                    ref={fileInputElement}
                     type="file"
                     onChange={(e) => handleChange(e)}                    
                 />                               
